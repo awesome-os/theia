@@ -16,6 +16,52 @@ export const GHOST_INDEX_URL =
 export const GHOST_CAS_BASE_URL =
   'https://github.com/awesome-os/b8g-ghost/releases/download/cas-v1';
 export const OPEN_VSX_REGISTRY_URL = 'https://open-vsx.org';
+export const TYPESCRIPT_ASSET_KEY = 'typescript-6.0.3-programmable.tar.gz';
+
+export interface BundledAwesomeOsExtension {
+  id: string;
+  repo: string;
+  repoUrl: string;
+  description: string;
+}
+
+/**
+ * Default Awesome-OS extension bundle shared across `@awesome-os/theia` and
+ * `awesome-os/code-oss` via `~/.b8g/cas/extensions/`.
+ */
+export const AWESOME_OS_BUNDLED_EXTENSIONS: readonly BundledAwesomeOsExtension[] = [
+  {
+    id: 'stealifylang-vscode',
+    repo: 'awesome-os/stealifylang-vscode',
+    repoUrl: 'https://github.com/awesome-os/stealifylang-vscode',
+    description:
+      'StealifyLang LSP, stealify-lint (B8G001-B8G016), .stealify-rules, and Awesome-OS governance project rules',
+  },
+  {
+    id: 'unreal-ghost',
+    repo: 'awesome-os/unreal-vscode',
+    repoUrl: 'https://github.com/awesome-os/unreal-vscode',
+    description: 'Unreal Engine ghost integration for Awesome-OS',
+  },
+  {
+    id: 'godot-ghost',
+    repo: 'awesome-os/godot-vscode',
+    repoUrl: 'https://github.com/awesome-os/godot-vscode',
+    description: 'Godot Engine ghost integration for Awesome-OS',
+  },
+  {
+    id: 'blender-ghost',
+    repo: 'awesome-os/blender-vscode',
+    repoUrl: 'https://github.com/awesome-os/blender-vscode',
+    description: 'Blender ghost integration for Awesome-OS',
+  },
+  {
+    id: 'obs-ghost',
+    repo: 'awesome-os/obs-vscode',
+    repoUrl: 'https://github.com/awesome-os/obs-vscode',
+    description: 'OBS Studio ghost integration for Awesome-OS',
+  },
+] as const;
 
 export interface GhostCasHistoryItem {
   sha256: string;
@@ -57,16 +103,26 @@ export interface HydratedGhostAbiResult {
   cacheHit: boolean;
 }
 
+export interface HydratedTypeScriptResult {
+  entry: GhostCasEntry;
+  installDir: string;
+  tsdkPath: string;
+  typescriptJsPath: string;
+  cacheHit: boolean;
+}
+
 export interface SharedExtensionsResult {
   extensionsDir: string;
   theiaDefaultPlugins: string;
   openVsxRegistryUrl: string;
   entries: string[];
+  bundledExtensions: readonly BundledAwesomeOsExtension[];
 }
 
 export interface HydratedTheiaElectronStack {
   electron: HydratedElectronResult;
   ghostAbi: HydratedGhostAbiResult;
+  typescript: HydratedTypeScriptResult;
   extensions: SharedExtensionsResult;
 }
 
@@ -108,6 +164,7 @@ export function ensureSharedExtensionsDir(): SharedExtensionsResult {
     theiaDefaultPlugins: getTheiaDefaultPluginsEnv(extensionsDir),
     openVsxRegistryUrl: process.env.OVSX_REGISTRY_URL ?? OPEN_VSX_REGISTRY_URL,
     entries: listSharedVsixExtensions(extensionsDir),
+    bundledExtensions: AWESOME_OS_BUNDLED_EXTENSIONS,
   };
 }
 
@@ -135,6 +192,10 @@ export function getGhostAbiAssetKey(
   if (platform === 'win32') return 'b8g-ghost-abi-win64.node';
   if (platform === 'darwin') return 'b8g-ghost-abi-macos-arm64.node';
   return arch === 'arm64' ? 'b8g-ghost-abi-linux-arm64.node' : 'b8g-ghost-abi-linux-x64.node';
+}
+
+export function getTypeScriptAssetKey(): string {
+  return TYPESCRIPT_ASSET_KEY;
 }
 
 export async function fetchGhostIndex(forceRefresh = false): Promise<GhostIndex> {
@@ -214,6 +275,20 @@ export async function resolveGhostAbiEntry(
   return entry;
 }
 
+export async function resolveTypeScriptEntry(
+  assetKey = getTypeScriptAssetKey(),
+  index?: GhostIndex,
+): Promise<GhostCasEntry> {
+  const idx = index ?? (await fetchGhostIndex());
+  const entry = idx.entries[assetKey];
+  if (!entry) {
+    throw new Error(
+      `TypeScript asset "${assetKey}" not found in b8g-ghost cas-v1 index (${idx.total_entries} entries)`,
+    );
+  }
+  return applyKeepLast5Pin(entry, process.env.TYPESCRIPT_GHOST_SHA256);
+}
+
 async function downloadVerifiedBlob(entry: GhostCasEntry, destPath: string): Promise<boolean> {
   if (existsSync(destPath)) {
     const actual = createHash('sha256').update(readFileSync(destPath)).digest('hex');
@@ -284,11 +359,40 @@ export async function ensureGhostAbiAddonPath(
   return { entry, addonPath, cacheDir, cacheHit };
 }
 
+export async function ensureFastTypeScript(
+  assetKey = getTypeScriptAssetKey(),
+): Promise<HydratedTypeScriptResult> {
+  const entry = await resolveTypeScriptEntry(assetKey);
+  const cacheDir = getGhostCacheDir();
+  const installDir = join(cacheDir, 'typescript', entry.sha256);
+  const tsdkPath = join(installDir, 'lib');
+  const typescriptJsPath = join(tsdkPath, 'typescript.js');
+
+  if (existsSync(typescriptJsPath)) {
+    return { entry, installDir, tsdkPath, typescriptJsPath, cacheHit: true };
+  }
+
+  const archivePath = join(cacheDir, `${entry.sha256}.tar.gz`);
+  await downloadVerifiedBlob(entry, archivePath);
+
+  mkdirSync(installDir, { recursive: true });
+  execFileSync('tar', ['-xzf', archivePath, '-C', installDir], { stdio: 'inherit' });
+
+  if (!existsSync(typescriptJsPath)) {
+    throw new Error(
+      `Extracted TypeScript archive missing expected compiler module: ${typescriptJsPath}`,
+    );
+  }
+
+  return { entry, installDir, tsdkPath, typescriptJsPath, cacheHit: false };
+}
+
 export async function hydrateTheiaElectronStack(): Promise<HydratedTheiaElectronStack> {
   const extensions = ensureSharedExtensionsDir();
-  const [electron, ghostAbi] = await Promise.all([
+  const [electron, ghostAbi, typescript] = await Promise.all([
     ensureElectronBinary(),
     ensureGhostAbiAddonPath(),
+    ensureFastTypeScript(),
   ]);
-  return { electron, ghostAbi, extensions };
+  return { electron, ghostAbi, typescript, extensions };
 }

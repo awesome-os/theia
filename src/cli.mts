@@ -4,16 +4,21 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  AWESOME_OS_BUNDLED_EXTENSIONS,
   ensureElectronBinary,
+  ensureFastTypeScript,
   ensureGhostAbiAddonPath,
   ensureSharedExtensionsDir,
   getElectronAssetKey,
   getElectronExecutableRelPath,
   getGhostAbiAssetKey,
   getGhostCacheDir,
+  getTypeScriptAssetKey,
   OPEN_VSX_REGISTRY_URL,
   resolveElectronEntry,
   resolveGhostAbiEntry,
+  resolveTypeScriptEntry,
+  type BundledAwesomeOsExtension,
   type GhostCasEntry,
 } from './hydrate.mts';
 
@@ -35,10 +40,20 @@ export interface TheiaLaunchPlan {
   zeroElectron: boolean;
   workspaceDir: string;
   extensionsDir: string;
+  bundledExtensions: readonly BundledAwesomeOsExtension[];
   ipcProtocol: 'B8G_ARENA_V1';
   env: Record<string, string>;
   command: string;
   args: string[];
+  typescript: {
+    assetKey: string;
+    version: string;
+    sha256: string;
+    bytes: number;
+    installDir: string;
+    tsdkPath: string;
+    downloadUrl: string;
+  };
   electron?: {
     assetKey: string;
     sha256: string;
@@ -105,7 +120,8 @@ export function formatHelpText(): string {
     `@awesome-os/theia v${getPackageVersion()}`,
     '',
     'Eclipse Theia IDE adapter over Sectium Browser/Electron, shared b8g-ghost cas-v1 Electron,',
-    'B8G_ARENA_V1 zero-copy IPC, and shared Open VSX .vsix cache (~/.b8g/cas/extensions/).',
+    'Faster Wave 2 TypeScript 6.0.3, B8G_ARENA_V1 zero-copy IPC, and shared Open VSX .vsix cache',
+    '(~/.b8g/cas/extensions/) with the 5 default Awesome-OS extensions.',
     '',
     'Usage:',
     '  theia [workspace-dir] [options]',
@@ -126,14 +142,26 @@ function getDefaultSectiumPipe(): string {
 export async function buildLaunchPlan(parsed: ParsedCliArgs): Promise<TheiaLaunchPlan> {
   const version = getPackageVersion();
   const extensions = ensureSharedExtensionsDir();
-  const baseEnv: Record<string, string> = {
-    B8G_IPC_PROTOCOL: 'B8G_ARENA_V1',
-    THEIA_DEFAULT_PLUGINS: extensions.theiaDefaultPlugins,
-    OVSX_REGISTRY_URL: process.env.OVSX_REGISTRY_URL ?? OPEN_VSX_REGISTRY_URL,
-    B8G_SHARED_EXTENSIONS_DIR: extensions.extensionsDir,
-  };
+  const cacheDir = getGhostCacheDir();
+  const tsAssetKey = getTypeScriptAssetKey();
+  const bundledExtensionIds = AWESOME_OS_BUNDLED_EXTENSIONS.map((ext) => ext.id).join(',');
 
   if (parsed.mode === 'sectium') {
+    let tsEntry: GhostCasEntry;
+    let tsInstallDir: string;
+    let tsdkPath: string;
+
+    if (parsed.dryRun) {
+      tsEntry = await resolveTypeScriptEntry(tsAssetKey);
+      tsInstallDir = join(cacheDir, 'typescript', tsEntry.sha256);
+      tsdkPath = join(tsInstallDir, 'lib');
+    } else {
+      const tsRes = await ensureFastTypeScript(tsAssetKey);
+      tsEntry = tsRes.entry;
+      tsInstallDir = tsRes.installDir;
+      tsdkPath = tsRes.tsdkPath;
+    }
+
     const displayChannel = process.env.SECTIUM_DEVICE_PIPE ?? getDefaultSectiumPipe();
     return {
       adapter: '@awesome-os/theia',
@@ -142,14 +170,30 @@ export async function buildLaunchPlan(parsed: ParsedCliArgs): Promise<TheiaLaunc
       zeroElectron: true,
       workspaceDir: parsed.workspaceDir,
       extensionsDir: extensions.extensionsDir,
+      bundledExtensions: AWESOME_OS_BUNDLED_EXTENSIONS,
       ipcProtocol: 'B8G_ARENA_V1',
       env: {
-        ...baseEnv,
+        B8G_IPC_PROTOCOL: 'B8G_ARENA_V1',
+        THEIA_DEFAULT_PLUGINS: extensions.theiaDefaultPlugins,
+        OVSX_REGISTRY_URL: process.env.OVSX_REGISTRY_URL ?? OPEN_VSX_REGISTRY_URL,
+        B8G_SHARED_EXTENSIONS_DIR: extensions.extensionsDir,
+        AWESOME_OS_BUNDLED_EXTENSIONS: bundledExtensionIds,
+        AWESOME_OS_TYPESCRIPT_TSDK: tsdkPath,
+        TYPESCRIPT_TSDK: tsdkPath,
         SECTIUM_TARGET: 'sectium-browser',
         SECTIUM_DEVICE_PIPE: displayChannel,
       },
       command: 'sectium-browser',
       args: ['--app=theia', `--workspace=${parsed.workspaceDir}`, ...parsed.passthroughArgs],
+      typescript: {
+        assetKey: tsAssetKey,
+        version: tsEntry.version ?? '6.0.3-wave2',
+        sha256: tsEntry.sha256,
+        bytes: tsEntry.bytes,
+        installDir: tsInstallDir,
+        tsdkPath,
+        downloadUrl: tsEntry.download_url,
+      },
       sectium: {
         target: 'sectium-browser',
         displayChannel,
@@ -157,7 +201,6 @@ export async function buildLaunchPlan(parsed: ParsedCliArgs): Promise<TheiaLaunc
     };
   }
 
-  const cacheDir = getGhostCacheDir();
   const electronAssetKey = getElectronAssetKey();
   const ghostAbiAssetKey = getGhostAbiAssetKey();
 
@@ -166,25 +209,35 @@ export async function buildLaunchPlan(parsed: ParsedCliArgs): Promise<TheiaLaunc
   let electronExecutablePath: string;
   let ghostAbiEntry: GhostCasEntry;
   let ghostAbiAddonPath: string;
+  let tsEntry: GhostCasEntry;
+  let tsInstallDir: string;
+  let tsdkPath: string;
 
   if (parsed.dryRun) {
-    [electronEntry, ghostAbiEntry] = await Promise.all([
+    [electronEntry, ghostAbiEntry, tsEntry] = await Promise.all([
       resolveElectronEntry(electronAssetKey),
       resolveGhostAbiEntry(ghostAbiAssetKey),
+      resolveTypeScriptEntry(tsAssetKey),
     ]);
     electronInstallDir = join(cacheDir, 'electron', electronEntry.sha256);
     electronExecutablePath = join(electronInstallDir, getElectronExecutableRelPath());
     ghostAbiAddonPath = join(cacheDir, 'ghost-abi', ghostAbiEntry.sha256, ghostAbiEntry.filename);
+    tsInstallDir = join(cacheDir, 'typescript', tsEntry.sha256);
+    tsdkPath = join(tsInstallDir, 'lib');
   } else {
-    const [electronRes, ghostAbiRes] = await Promise.all([
+    const [electronRes, ghostAbiRes, tsRes] = await Promise.all([
       ensureElectronBinary(electronAssetKey),
       ensureGhostAbiAddonPath(ghostAbiAssetKey),
+      ensureFastTypeScript(tsAssetKey),
     ]);
     electronEntry = electronRes.entry;
     electronInstallDir = electronRes.installDir;
     electronExecutablePath = electronRes.executablePath;
     ghostAbiEntry = ghostAbiRes.entry;
     ghostAbiAddonPath = ghostAbiRes.addonPath;
+    tsEntry = tsRes.entry;
+    tsInstallDir = tsRes.installDir;
+    tsdkPath = tsRes.tsdkPath;
   }
 
   return {
@@ -194,14 +247,30 @@ export async function buildLaunchPlan(parsed: ParsedCliArgs): Promise<TheiaLaunc
     zeroElectron: false,
     workspaceDir: parsed.workspaceDir,
     extensionsDir: extensions.extensionsDir,
+    bundledExtensions: AWESOME_OS_BUNDLED_EXTENSIONS,
     ipcProtocol: 'B8G_ARENA_V1',
     env: {
-      ...baseEnv,
+      B8G_IPC_PROTOCOL: 'B8G_ARENA_V1',
+      THEIA_DEFAULT_PLUGINS: extensions.theiaDefaultPlugins,
+      OVSX_REGISTRY_URL: process.env.OVSX_REGISTRY_URL ?? OPEN_VSX_REGISTRY_URL,
+      B8G_SHARED_EXTENSIONS_DIR: extensions.extensionsDir,
+      AWESOME_OS_BUNDLED_EXTENSIONS: bundledExtensionIds,
+      AWESOME_OS_TYPESCRIPT_TSDK: tsdkPath,
+      TYPESCRIPT_TSDK: tsdkPath,
       B8G_GHOST_ABI_PATH: ghostAbiAddonPath,
       B8G_GHOST_ELECTRON_SHA256: electronEntry.sha256,
     },
     command: electronExecutablePath,
     args: [parsed.workspaceDir, ...parsed.passthroughArgs],
+    typescript: {
+      assetKey: tsAssetKey,
+      version: tsEntry.version ?? '6.0.3-wave2',
+      sha256: tsEntry.sha256,
+      bytes: tsEntry.bytes,
+      installDir: tsInstallDir,
+      tsdkPath,
+      downloadUrl: tsEntry.download_url,
+    },
     electron: {
       assetKey: electronAssetKey,
       sha256: electronEntry.sha256,
