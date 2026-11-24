@@ -4,6 +4,29 @@ Eclipse Theia IDE adapter for **Awesome-OS** — running natively on **Sectium B
 
 ---
 
+## Quick Install & Usage
+
+### Install via `pnpm` (or release tarball)
+
+```powershell
+pnpm add github:awesome-os/theia
+```
+
+Or download the latest SHA-256 verified archive from [`Releases`](https://github.com/awesome-os/theia/releases/latest).
+
+### Usage & Verification
+
+```powershell
+# Launch Eclipse Theia on Sectium Browser (default, zero Electron) or shared cas-v1 Electron
+node src/cli.mts --sectium --dry-run
+node src/cli.mts --electron --dry-run
+
+# Verify locally (Node.js 22+)
+node --test
+```
+
+---
+
 ## Architecture Highlights
 
 ### 1. Sectium Browser-Native Target (`--sectium` / `--browser` — Zero Electron)
