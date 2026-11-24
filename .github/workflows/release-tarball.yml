@@ -1,0 +1,21 @@
+name: Release Tarball
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    uses: awesome-os/maintenance-workflows/.github/workflows/reusable-tarball-release.yml@main
+    with:
+      archive_prefix: theia
+      tag: ${{ inputs.tag }}
