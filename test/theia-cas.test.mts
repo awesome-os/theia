@@ -168,6 +168,8 @@ describe('@awesome-os/theia cas-v1 hydration & CLI', () => {
     assert.equal(sectiumPlan.env.TYPESCRIPT_TSDK, sectiumPlan.typescript.tsdkPath);
     assert.equal(sectiumPlan.bundledExtensions.length, 5);
     assert.equal(sectiumPlan.env.AWESOME_OS_BUNDLED_EXTENSIONS, expectedBundledIds);
+    assert.equal(sectiumPlan.env.B8G_APP_NAME, 'Awesome-OS Theia');
+    assert.equal(sectiumPlan.env.B8G_LIBELECTRON_DIR, join(tempCacheDir, 'libelectron'));
 
     const browserPlan = await buildLaunchPlan(parseCliArgs(['--browser', '--dry-run']));
     assert.equal(browserPlan.mode, 'sectium');
@@ -198,5 +200,7 @@ describe('@awesome-os/theia cas-v1 hydration & CLI', () => {
     assert.equal(electronPlan.env.TYPESCRIPT_TSDK, electronPlan.typescript.tsdkPath);
     assert.equal(electronPlan.bundledExtensions.length, 5);
     assert.equal(electronPlan.env.AWESOME_OS_BUNDLED_EXTENSIONS, expectedBundledIds);
+    assert.equal(electronPlan.env.B8G_APP_NAME, 'Awesome-OS Theia');
+    assert.equal(electronPlan.env.B8G_LIBELECTRON_DIR, join(tempCacheDir, 'libelectron'));
   });
 });

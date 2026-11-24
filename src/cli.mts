@@ -79,9 +79,9 @@ export function getPackageVersion(): string {
   try {
     const pkgPath = fileURLToPath(new URL('../package.json', import.meta.url));
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: string };
-    return pkg.version ?? '0.1.0';
+    return pkg.version ?? '0.2.0';
   } catch {
-    return '0.1.0';
+    return '0.2.0';
   }
 }
 
@@ -145,6 +145,15 @@ export async function buildLaunchPlan(parsed: ParsedCliArgs): Promise<TheiaLaunc
   const cacheDir = getGhostCacheDir();
   const tsAssetKey = getTypeScriptAssetKey();
   const bundledExtensionIds = AWESOME_OS_BUNDLED_EXTENSIONS.map((ext) => ext.id).join(',');
+  const baseEnv: Record<string, string> = {
+    B8G_APP_NAME: 'Awesome-OS Theia',
+    B8G_LIBELECTRON_DIR: join(getGhostCacheDir(), 'libelectron'),
+    B8G_IPC_PROTOCOL: 'B8G_ARENA_V1',
+    THEIA_DEFAULT_PLUGINS: extensions.theiaDefaultPlugins,
+    OVSX_REGISTRY_URL: process.env.OVSX_REGISTRY_URL ?? OPEN_VSX_REGISTRY_URL,
+    B8G_SHARED_EXTENSIONS_DIR: extensions.extensionsDir,
+    AWESOME_OS_BUNDLED_EXTENSIONS: bundledExtensionIds,
+  };
 
   if (parsed.mode === 'sectium') {
     let tsEntry: GhostCasEntry;
@@ -173,11 +182,7 @@ export async function buildLaunchPlan(parsed: ParsedCliArgs): Promise<TheiaLaunc
       bundledExtensions: AWESOME_OS_BUNDLED_EXTENSIONS,
       ipcProtocol: 'B8G_ARENA_V1',
       env: {
-        B8G_IPC_PROTOCOL: 'B8G_ARENA_V1',
-        THEIA_DEFAULT_PLUGINS: extensions.theiaDefaultPlugins,
-        OVSX_REGISTRY_URL: process.env.OVSX_REGISTRY_URL ?? OPEN_VSX_REGISTRY_URL,
-        B8G_SHARED_EXTENSIONS_DIR: extensions.extensionsDir,
-        AWESOME_OS_BUNDLED_EXTENSIONS: bundledExtensionIds,
+        ...baseEnv,
         AWESOME_OS_TYPESCRIPT_TSDK: tsdkPath,
         TYPESCRIPT_TSDK: tsdkPath,
         SECTIUM_TARGET: 'sectium-browser',
@@ -250,11 +255,7 @@ export async function buildLaunchPlan(parsed: ParsedCliArgs): Promise<TheiaLaunc
     bundledExtensions: AWESOME_OS_BUNDLED_EXTENSIONS,
     ipcProtocol: 'B8G_ARENA_V1',
     env: {
-      B8G_IPC_PROTOCOL: 'B8G_ARENA_V1',
-      THEIA_DEFAULT_PLUGINS: extensions.theiaDefaultPlugins,
-      OVSX_REGISTRY_URL: process.env.OVSX_REGISTRY_URL ?? OPEN_VSX_REGISTRY_URL,
-      B8G_SHARED_EXTENSIONS_DIR: extensions.extensionsDir,
-      AWESOME_OS_BUNDLED_EXTENSIONS: bundledExtensionIds,
+      ...baseEnv,
       AWESOME_OS_TYPESCRIPT_TSDK: tsdkPath,
       TYPESCRIPT_TSDK: tsdkPath,
       B8G_GHOST_ABI_PATH: ghostAbiAddonPath,

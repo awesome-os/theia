@@ -1,6 +1,6 @@
 {
   "name": "@awesome-os/theia",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Eclipse Theia IDE adapter over Sectium Browser/Electron, shared b8g-ghost cas-v1 Electron, B8G_ARENA_V1 zero-copy IPC, and shared Open VSX .vsix cache with awesome-os/code-oss",
   "type": "module",
   "license": "MIT",
