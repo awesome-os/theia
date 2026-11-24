@@ -1,0 +1,38 @@
+{
+  "name": "@awesome-os/theia",
+  "version": "0.1.0",
+  "description": "Eclipse Theia IDE adapter over Sectium Browser/Electron, shared b8g-ghost cas-v1 Electron, B8G_ARENA_V1 zero-copy IPC, and shared Open VSX .vsix cache with awesome-os/code-oss",
+  "type": "module",
+  "license": "MIT",
+  "main": "./src/index.mts",
+  "types": "./src/index.mts",
+  "exports": {
+    ".": "./src/index.mts",
+    "./hydrate": "./src/hydrate.mts",
+    "./cli": "./src/cli.mts"
+  },
+  "bin": {
+    "theia": "./src/cli.mts"
+  },
+  "scripts": {
+    "test": "node --test test/theia-cas.test.mts",
+    "start": "node src/cli.mts"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/awesome-os/theia.git"
+  },
+  "keywords": [
+    "awesome-os",
+    "theia",
+    "eclipse-theia",
+    "sectium",
+    "b8g-ghost",
+    "electron",
+    "open-vsx",
+    "vsix"
+  ]
+}
