@@ -1,0 +1,52 @@
+{
+  "schema": "holo-compiler-lockfile-v1",
+  "abiMagic": "0x33564742",
+  "casLayout": "v11",
+  "repo": "awesome-os/theia",
+  "targets": [
+    "win64",
+    "linux-x64",
+    "linux-arm64",
+    "macos-arm64",
+    "wasm32-wasi"
+  ],
+  "generatedAt": "2026-11-24T23:53:02.473Z",
+  "dependencies": [
+    {
+      "id": "awesome-os/theia/SHA256SUMS.txt",
+      "kind": "object",
+      "version": "v0.2.1",
+      "target": "any",
+      "sha512": "ec25a6631bf4d594ed2a8be972bd439ebffd772cb6cad928feaeeddbbb40e268ed5de4661ab53ca7fcf9889102af7a83801868771b912d43b638aa8749a4e151",
+      "size": 87,
+      "executable": false,
+      "blob": "v11/files/ec/ec25a6631bf4d594ed2a8be972bd439ebffd772cb6cad928feaeeddbbb40e268ed5de4661ab53ca7fcf9889102af7a83801868771b912d43b638aa8749a4e151",
+      "url": "https://github.com/awesome-os/theia/releases/download/v0.2.1/SHA256SUMS.txt",
+      "dependencies": []
+    },
+    {
+      "id": "awesome-os/theia/SHA512SUMS.txt",
+      "kind": "object",
+      "version": "v0.2.1",
+      "target": "any",
+      "sha512": "f61b1e5cb6139f404b2979b4301e7f46b041e44aa23f843235c026487feea273968b16eda0b9a11bb360686c40a18334cdb12eeac72b667deee765bb994dce55",
+      "size": 151,
+      "executable": false,
+      "blob": "v11/files/f6/f61b1e5cb6139f404b2979b4301e7f46b041e44aa23f843235c026487feea273968b16eda0b9a11bb360686c40a18334cdb12eeac72b667deee765bb994dce55",
+      "url": "https://github.com/awesome-os/theia/releases/download/v0.2.1/SHA512SUMS.txt",
+      "dependencies": []
+    },
+    {
+      "id": "awesome-os/theia/theia-v0.2.1.tar.zst",
+      "kind": "object",
+      "version": "v0.2.1",
+      "target": "any",
+      "sha512": "7c3b5ebc6379aacab08bf91e1c657d977cf258604eaa949c1c8caac2a68fadd9b782a08725f1825d57175723e238ef4a9def9da20b665572fb357effc735ac43",
+      "size": 11598,
+      "executable": false,
+      "blob": "v11/files/7c/7c3b5ebc6379aacab08bf91e1c657d977cf258604eaa949c1c8caac2a68fadd9b782a08725f1825d57175723e238ef4a9def9da20b665572fb357effc735ac43",
+      "url": "https://github.com/awesome-os/theia/releases/download/v0.2.1/theia-v0.2.1.tar.zst",
+      "dependencies": []
+    }
+  ]
+}
