@@ -81,3 +81,13 @@ Requires Node.js 22.18+ / 24+ (native erasable TypeScript execution, `noEmit: tr
 ```bash
 node --test test/theia-cas.test.mts
 ```
+
+## Quick Install & Run (Windows / Linux / macOS)
+
+```sh
+# Install / hydrate from v11 CAS via holo-pm
+holo-pm install repository://github.com/awesome-os/theia@main
+
+# Or project & run directly via holo-project (0-byte hardlink)
+holo-project "project://node/theia?from=repository://github.com/awesome-os/theia@main"
+```
