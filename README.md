@@ -1,3 +1,5 @@
+> [!NOTE] Consolidated into the unified Holo v11 OS monorepo at https://github.com/awesome-os/awesome-os
+
 # `@awesome-os/theia`
 
 Eclipse Theia IDE adapter for **Awesome-OS** — running natively on **Sectium Browser** (`--sectium` / `--browser`, zero Electron) or on the **shared debloated `b8g-ghost @ cas-v1` Electron runtime** (`--electron`), wired to **Faster Wave 2 TypeScript (`6.0.3`)**, bridged via **`B8G_ARENA_V1`** zero-copy IPC, and sharing a **100% overlapping Open VSX `.vsix` extension cache** with [`awesome-os/code-oss`](https://github.com/awesome-os/code-oss).
